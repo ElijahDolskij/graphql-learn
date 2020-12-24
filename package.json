@@ -1,0 +1,28 @@
+{
+  "name": "graphql-learn",
+  "version": "1.0.0",
+  "description": "Learning graphql project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ElijahDolskij/graphql-learn.git"
+  },
+  "author": "ElijahDolskij",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ElijahDolskij/graphql-learn/issues"
+  },
+  "homepage": "https://github.com/ElijahDolskij/graphql-learn#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-graphql": "^0.12.0",
+    "graphql": "^15.4.0",
+    "mongoose": "^5.11.8",
+    "nodemon": "^2.0.6"
+  }
+}
