@@ -6,44 +6,24 @@ const {
 	GraphQLID,
 	GraphQLInt,
 	GraphQLString,
-	GraphQLList
+	GraphQLList,
+	GraphQLNonNull
 } = graphql;
-//
-// const directorsJson = [
-// 	{ "name": "Quentin Tarantino", "age": 55 },//5feb911a664b45e2097c3ade
-// 	{ "name": "Michael Radford", "age": 72 }, //5feb9137664b45e2097c3adf
-// 	{ "name": "James McTeique", "age": 51 }, //5feb9150664b45e2097c3ae0
-// 	{ "name": "Guy Ritchie", "age": 50 }, //5feb9167664b45e2097c3ae1
-// ];
-//
-// const moviesJson = [
-// 	{ "name": "Pulp fiction", "genre": "Crime", "directorId": },
-// 	{ "name": "1984", "genre": "Sci-Fi", "directorId": },
-// 	{ "name": "V for vendetta", "genre": "Sci-Fi-Triller", "directorId": },
-// 	{ "name": "Snatch", "genre": "Crime-Comedy", "directorId": },
-// 	{ "name": "Reservoir dogs", "genre": "Crime", "directorId": },
-// 	{ "name": "The Hateful Eight", "genre": "Crime", "directorId": },
-// 	{ "name": "Inglourious Bastards", "genre": "Crime", "directorId": },
-// 	{ "name": "Lock, Stock and Two Smoking Barrels", "genre": "Crime-Comedy", "directorId": },
-// ];
 
-const directors = [
-	{ id: 1, name: 'Director 1', age: 53 },
-	{ id: 2, name: 'Director 2', age: 23 },
-	{ id: 3, name: 'Director 3', age: 43 },
-	{ id: 4, name: 'Director 4', age: 14 },
-];
+const Movies = require('../models/movies');
+const Directors = require('../models/directors');
 
 const MovieType = new GraphQLObjectType({
 	name: 'Movie',
 	fields: () => ({
 		id: { type: GraphQLID },
-		name: { type: GraphQLString },
-		genre: { type: GraphQLString },
-		director: {
+		name: { type: new GraphQLNonNull(GraphQLString) },
+		genre: { type: new GraphQLNonNull(GraphQLString) },
+		directorId : {
 			type: DirectorType,
 			resolve(parent) {
 				//return directors.find(({ id }) => id == parent.id)
+				return Directors.findById(parent.directorId);
 			}
 		},
 	}),
@@ -53,15 +33,103 @@ const DirectorType = new GraphQLObjectType({
 	name: 'Director',
 	fields: () => ({
 		id: { type: GraphQLID },
-		name: { type: GraphQLString },
-		age: { type: GraphQLInt },
+		name: { type: new GraphQLNonNull(GraphQLString) },
+		age: { type: new GraphQLNonNull(GraphQLInt) },
 		movies: {
 			type: new GraphQLList(MovieType),
 			resolve(parent, args) {
-				//return movies.filter(({ directorId }) => parent.id == directorId)
+				return Movies.find({ directorId: parent.id
+				});
 			}
 		}
 	}),
+});
+
+const Mutation = new GraphQLObjectType({
+	name: 'Mutation',
+	fields: {
+		addDirector: {
+			type: DirectorType,
+			args: {
+				name: { type: new GraphQLNonNull(GraphQLString) },
+				age: { type: new GraphQLNonNull(GraphQLInt) }
+			},
+			resolve: (parent, { name, age }) => {
+				const director = new Directors({
+					name,
+					age
+				});
+
+				return director.save();
+			}
+		},
+		addMovie: {
+			type: MovieType,
+			args: {
+				name: { type: new GraphQLNonNull(GraphQLString) },
+				genre: { type: new GraphQLNonNull(GraphQLString) },
+				directorId: { type: GraphQLID }
+			},
+			resolve: (parent, { name, genre, directorId }) => {
+				const movie = new Movies({
+					name,
+					genre,
+					directorId
+				});
+
+				return movie.save();
+			}
+		},
+		deleteDirector: {
+			type: DirectorType,
+			args: {
+				id: { type: GraphQLID }
+			},
+			resolve(parent, { id }) {
+				return Directors.findByIdAndRemove(id);
+			}
+		},
+		updateDirector: {
+			type: DirectorType,
+			args: {
+				id: { type: GraphQLID },
+				name: { type: new GraphQLNonNull(GraphQLString) },
+				age: { type: new GraphQLNonNull(GraphQLInt) }
+			},
+			resolve(parent, { id, name, age }) {
+				return Directors.findByIdAndUpdate(
+					id,
+					{ $set: { name, age } },
+					{ new: true },
+				);
+			}
+		},
+		deleteMovie: {
+			type: MovieType,
+			args: {
+				id: { type: GraphQLID }
+			},
+			resolve(parent, { id }) {
+				return Movies.findByIdAndRemove(id);
+			}
+		},
+		updateMovie: {
+			type: MovieType,
+			args: {
+				id: { type: GraphQLID },
+				name: { type: new GraphQLNonNull(GraphQLString) },
+				genre: { type: new GraphQLNonNull(GraphQLString) },
+				directorId: { type: GraphQLID },
+			},
+			resolve(parent, { id, name, genre, directorId }) {
+				return Movies.findByIdAndUpdate(
+					id,
+					{ $set: { name, genre, directorId } },
+					{ new: true },
+				);
+			}
+		},
+	}
 });
 
 const Query = new GraphQLObjectType({
@@ -72,6 +140,7 @@ const Query = new GraphQLObjectType({
 			args: { id: { type: GraphQLID }},
 			resolve(parent, args) {
 				//return movies.find(({ id }) => id == args.id)
+				return Movies.findById(args.id);
 			}
 		},
 		director: {
@@ -79,23 +148,27 @@ const Query = new GraphQLObjectType({
 			args: { id: { type: GraphQLInt }},
 			resolve(parent, args) {
 				//return directors.find(({ id }) => id == args.id)
+				return Directors.findById(args.id);
 			}
 		},
 		movies: {
 			type: new GraphQLList(MovieType),
 			resolve(parent, args) {
 				//return movies;
+				return Movies.find({});
 			}
 		},
 		directors: {
 			type: new GraphQLList(DirectorType),
 			resolve(parent, args) {
 				//return directors;
+				return Directors.find({});
 			}
 		}
 	})
 });
 
 module.exports = new GraphQLSchema({
-	query: Query
+	query: Query,
+	mutation: Mutation
 });
